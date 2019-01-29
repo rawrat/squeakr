@@ -1,5 +1,6 @@
 <template>
   <div class="home">
+    <button v-on:click="squeakButton()">Squeak</button>
     <TimelineItem v-for="squeak in squeaks" :squeak="squeak" />
   </div>
 </template>
@@ -21,6 +22,11 @@ export default {
   },
   async mounted () {
     this.squeaks = await Backend.squeaks()
+  },
+  methods: {
+    squeakButton() {
+      this.$router.push('compose')
+    }
   }
 }
 </script>
