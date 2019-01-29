@@ -1,18 +1,26 @@
 <template>
   <div class="home">
-    <img alt="Vue logo" src="../assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <TimelineItem v-for="squeak in squeaks" :squeak="squeak" />
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import HelloWorld from '@/components/HelloWorld.vue'
+import TimelineItem from '@/components/TimelineItem.vue'
+import Backend from '@/Backend'
 
 export default {
   name: 'home',
   components: {
-    HelloWorld
+    TimelineItem,
+  },
+  data: function() {
+    return {
+      squeaks: null
+    }
+  },
+  async mounted () {
+    this.squeaks = await Backend.squeaks()
   }
 }
 </script>

@@ -6,6 +6,7 @@ ACTION squeakr::post(const name user, const std::string secret, const std::strin
   
   squeaks.emplace(user, [&](auto& x) {
     x.id = squeaks.available_primary_key();
+    x.user = user;
     x.secret = secret;
     x.nonce = nonce;
     x.timestamp = now();
