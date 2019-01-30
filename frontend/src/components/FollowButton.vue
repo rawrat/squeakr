@@ -1,8 +1,8 @@
 <template>
-  <div>
     <span v-if="isMyself">That's you!</span>
+    <span v-else-if="user.already_follows">Already following</span>
+    <span v-else-if="user.already_requested">Already requested</span>
     <button v-else @click="follow">Follow</button>
-  </div>
 </template>
 
 <script>
@@ -12,13 +12,14 @@ export default {
   name: 'FollowButton',
   props: ['user'],
   methods: {
-    follow: function() {
-      Backend.followRequest(this.user)
+    follow: async function() {
+      await Backend.followRequest(this.user.user)
+      this.$parent.$emit('update')
     }
   },
   computed: {
     isMyself: function() {
-      return Backend.account.name == this.user
+      return Backend.account.name == this.user.user
     }
   }
 }

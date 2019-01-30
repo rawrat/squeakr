@@ -1,14 +1,15 @@
 <template>
 <div>
   <div id="user_list_container">
+    <h3>All Users</h3>
     <table>
-      <UserListItem v-for="user in users" :user="user" />
+      <UserListItem v-for="user in users" :user="user" v-on:update="update" />
     </table>
   </div>
   <div id="follow_requests_container">
     <h3>Follow Requests</h3>
     <table>
-      <UserListItem v-for="user in followRequests" :user="user" />
+      <UserListItem v-for="user in followRequests" :user="user" :is_request="true" v-on:update="update" />
     </table>
   </div>
 </div>
@@ -17,6 +18,14 @@
 <script>
 import Backend from '@/Backend'
 import UserListItem from '@/components/UserListItem.vue'
+
+async function reload(x) {
+  await Backend.scatterConnect()
+  x.users = await Backend.users()
+  x.following = await Backend.following(Backend.account.name)
+  x.followRequests = await Backend.followRequests(Backend.account.name)
+  console.log("this.users: ", x.users)
+}
 
 export default {
   name: 'Users',
@@ -30,11 +39,12 @@ export default {
     }
   },
   async mounted() {
-    await Backend.scatterConnect()
-    this.users = await Backend.users()
-    this.following = await Backend.following(Backend.account.name)
-    this.followRequests = await Backend.followRequests(Backend.account.name)
-    console.log("this.users: ", this.users)
+    reload(this)
+  },
+  methods: {
+    update: function() {
+      reload(this)
+    }
   }
 }
 </script>

@@ -75,6 +75,7 @@ CONTRACT squeakr : public contract {
       ACTION post(const name user, const std::string secret, const std::string uuid);
       ACTION followreq(const name follower, const name followee);
       ACTION accept(const name followee, const name follower);
+      void accessgrant(const name user, const name contract, const std::string uuid, const eosio::public_key public_key);
 
 
     

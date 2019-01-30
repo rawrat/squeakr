@@ -9,6 +9,7 @@ import ScatterEOS from 'scatterjs-plugin-eosjs'
 import Priveos from 'priveos'
 import nacl from 'tweetnacl'
 import uuidv4 from 'uuid/v4'
+const _ = require('underscore')
 
 ScatterJS.plugins( new ScatterEOS() )
 
@@ -43,7 +44,8 @@ class Backend {
   }
   
   async logout() {
-    this.scatter.logout()
+    await this.scatter.logout()
+    location.reload()
   }
   
   file_id() {
@@ -59,7 +61,8 @@ class Backend {
       limit: 100,
     })
     console.log("rows: ", res1.rows)
-    const users = res1.rows.map(x => x.user)
+    let users = _.indexBy(res1.rows, 'user')
+    console.log("indexed users: ", JSON.stringify(users, null, 2))
     
     const res2 = await this.eos_api.getTableRows({
       json: true,
@@ -67,14 +70,42 @@ class Backend {
       scope: contract,
       table: 'follower',
       limit: 100,
-      table_key: "byfollowee",
-      // index_position: 3,
+      table_key: this.account.name,
+      index_position: 1,
       key_type: "name",
-      lower_bound: this.account.name,
     })
-    console.log("followers: ", res2.rows)
-
-    return users
+    console.log("followees: ", res2.rows)
+    for(const follower of res2.rows) {
+      for(const user of res1.rows) {
+        if(user.user == follower.follower) {
+          console.log(`User ${user.user} already follows ${follower.followee}`)
+          users[follower.followee].already_follows = true
+        }
+      }
+    }
+    
+    const res3 = await this.eos_api.getTableRows({
+      json: true,
+      code: contract,
+      scope: contract,
+      table: 'request',
+      limit: 100,
+      table_key: this.account.name,
+      index_position: 1,
+      key_type: "name",
+    })
+    console.log("requested: ", res3.rows)
+    for(const follower of res3.rows) {
+      for(const user of res1.rows) {
+        if(user.user == follower.follower) {
+          console.log(`User ${user.user} already requested ${follower.followee}`)
+          users[follower.followee].already_requested = true
+        }
+      }
+    }
+    console.log("indexed users: ", JSON.stringify(users, null, 2))
+    console.log("Object.keys(users): ", Object.values(users))
+    return Object.values(users)
   }
   
   async squeaks() {
@@ -105,6 +136,8 @@ class Backend {
       }
     }
     
+    const followers = await this.following()
+    console.log("followers: ", followers)
     // show most recent tweet at the top
     const sorted = squeaks.sort((a,b) => b.timestamp - a.timestamp)
     return sorted
@@ -155,7 +188,7 @@ class Backend {
     }
   }
   
-  async post(text) {
+  async getPriveos() {
     const {
       ephemeralKey,
       key,
@@ -165,8 +198,12 @@ class Backend {
     config.priveos.eos = this.eos
     config.priveos.ephemeralKeyPrivate = ephemeralKey.private
     config.priveos.ephemeralKeyPublic = ephemeralKey.public
-    
     const priveos = new Priveos(config.priveos)
+    return {priveos, nonce, key}
+  }
+  
+  async post(text) {
+    const {priveos, nonce, key} = await this.getPriveos()
     const secret = nacl.secretbox(Buffer.from(text), nonce, key)
     const file_id = this.account.name
 
@@ -187,19 +224,34 @@ class Backend {
     console.log("res: ", JSON.stringify(res))
   }
   
-  async following(user) {
+  async accept(follower) {
+    const {priveos, nonce, key} = await this.getPriveos()
+    
+    const actions = [{
+      account: contract,
+      name: 'accept',
+      authorization: [{
+        actor: this.account.name,
+        permission: this.account.authority,
+      }],
+      data: {
+        followee: this.account.name,
+        follower: follower,
+      }
+    }]
+    await this.eos.transaction({actions})
+  }
+  
+  async following() {
     const res = await this.eos_api.getTableRows({
       json: true,
       code: contract,
       scope: contract,
       table: 'follower',
       limit: 100,
-      index_position: 2,
-      key_type: "name",
-      lower_bound: this.account.name,
     })
     console.log("following: ", res.rows)
-    return res.rows.map(x => x.user)
+    return res.rows.filter(x => x.followee == this.account.name)
   }
   
   async followRequests(user) {
@@ -209,12 +261,8 @@ class Backend {
       scope: contract,
       table: 'request',
       limit: 100,
-      index_position: 2,
-      key_type: "name",
-      lower_bound: this.account.name,
     })
-    console.log("followRequests: ", res.rows)
-    return res.rows.map(x => x.follower)
+    return res.rows.filter(x => x.followee == this.account.name)
   }
   
   async followRequest(followee) {

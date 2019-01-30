@@ -60,8 +60,34 @@ ACTION squeakr::accept(const name followee, const name follower) {
   requests.erase(requests.find(itr->id));
 }
 
-EOSIO_DISPATCH(squeakr, 
-  (followreq)
-  (post) 
-  (accept)
-)
+void squeakr::accessgrant(const name user, const name contract, const std::string uuid, const eosio::public_key public_key) {
+  // no require_auth, anybody may call this
+  
+  // in this case, the uuid is the account name as string
+  const name giver{uuid};
+  
+  // giver gives access to user, so user needs to be a follower of giver
+  const auto followers_idx = followers.template get_index<"combined"_n>();
+  const auto followers_itr = followers_idx.find(combine_ids(user.value, giver.value));
+  check(followers_itr != followers_idx.end(), "You are not following this user, permission denied");
+}
+
+extern "C" {
+  [[noreturn]] void apply(uint64_t receiver, uint64_t code, uint64_t action) {
+    if (action == "accessgrant"_n.value && code == "priveosrules"_n.value) {
+      execute_action(eosio::name(receiver), eosio::name(code), &squeakr::accessgrant);
+    }
+
+    if (code == receiver) {
+      switch (action) { 
+        EOSIO_DISPATCH_HELPER(squeakr, 
+          (followreq)
+          (post) 
+          (accept)
+        ) 
+      }    
+    }
+
+    eosio_exit(0);
+  }
+}
