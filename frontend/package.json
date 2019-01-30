@@ -7,9 +7,11 @@
     "build": "vue-cli-service build"
   },
   "dependencies": {
-    "eosjs": "^20.0.0-beta3",
+    "eosjs": "16",
+    "eosjs-ecc": "^4.0.4",
     "scatterjs-core": "^2.7.7",
-    "scatterjs-plugin-eosjs2": "^1.5.0",
+    "scatterjs-plugin-eosjs": "^1.5.0",
+    "tweetnacl": "^1.0.1",
     "vue": "^2.5.21",
     "vue-router": "^3.0.1"
   },

@@ -10,7 +10,8 @@ CONTRACT squeakr : public contract {
       eosio::contract(self,code,ds), 
       squeaks(_self, _self.value), 
       followers(_self, _self.value),
-      requests(_self, _self.value)
+      requests(_self, _self.value),
+      users(_self, _self.value)
       {}
 
       /**
@@ -21,7 +22,7 @@ CONTRACT squeakr : public contract {
         name user;
         uint32_t timestamp;
         std::string secret; // The encrypted message text
-        std::string nonce;  // Nonce for the encrypted message text
+        std::string uuid;  // uuid for privEOS
         
         uint64_t primary_key()const { return id; } 
         uint64_t by_user()const { return user.value; }
@@ -31,6 +32,13 @@ CONTRACT squeakr : public contract {
       > squeak_table;
       squeak_table squeaks;
       
+      TABLE user {
+        name user;
+        
+        uint64_t primary_key()const { return user.value; } 
+      };
+      typedef multi_index<"user"_n, user> user_table;
+      user_table users;
       
       /**
         * Only approved followers can read the squeaks
@@ -58,11 +66,13 @@ CONTRACT squeakr : public contract {
         * followers table.
         */
       typedef multi_index<"request"_n, follower,
+        indexed_by< "byfollower"_n, const_mem_fun<follower, uint64_t,  &follower::by_follower> >,
+        indexed_by< "byfollowee"_n, const_mem_fun<follower, uint64_t,  &follower::by_followee> >,
         indexed_by< "combined"_n, const_mem_fun<follower, uint128_t,  &follower::combined> >
       > request_table;
       request_table requests;
       
-      ACTION post(const name user, const std::string secret, const std::string nonce);
+      ACTION post(const name user, const std::string secret, const std::string uuid);
       ACTION followreq(const name follower, const name followee);
       ACTION accept(const name followee, const name follower);
 

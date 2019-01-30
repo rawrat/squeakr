@@ -1,7 +1,9 @@
 <template>
   <div class="home">
     <button v-on:click="squeakButton()">Squeak</button>
-    <TimelineItem v-for="squeak in squeaks" :squeak="squeak" />
+    <table>
+      <TimelineItem v-for="squeak in squeaks" :squeak="squeak" />
+    </table>
   </div>
 </template>
 
@@ -21,6 +23,7 @@ export default {
     }
   },
   async mounted () {
+    await Backend.scatterConnect()
     this.squeaks = await Backend.squeaks()
   },
   methods: {

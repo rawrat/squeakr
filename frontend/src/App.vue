@@ -3,12 +3,27 @@
     <div id="header">
       <h1>Squeakr</h1>
       <div id="nav">
-        <router-link to="/">Home</router-link>
+        <router-link to="/">Home</router-link> | 
+        <router-link to="/users">Users</router-link>
       </div>
+      <button v-on:click="logout()">Logout</button>
     </div>
     <router-view/>
   </div>
 </template>
+
+<script>
+import Backend from '@/Backend'
+
+export default {
+  methods: {
+    logout: async function() {
+      await Backend.logout()
+      this.$router.push('/')
+    }
+  }
+}
+</script>
 
 <style>
 #app {

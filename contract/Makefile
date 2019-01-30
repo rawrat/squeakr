@@ -21,6 +21,7 @@ accept:
 	$(CLEOS) push action $(CONTRACT) accept '["angelosqueak", "alicesqueakr"]' -p angelosqueak
 	
 show:
+	$(CLEOS) get table $(CONTRACT) $(CONTRACT) user
 	$(CLEOS) get table $(CONTRACT) $(CONTRACT) squeak
 	$(CLEOS) get table $(CONTRACT) $(CONTRACT) request
 	$(CLEOS) get table $(CONTRACT) $(CONTRACT) follower
