@@ -249,7 +249,7 @@ class Backend {
       limit: 100,
     })
     console.log("following: ", res.rows)
-    return res.rows.filter(x => x.followee == this.account.name)
+    return res.rows.filter(x => x.follower == this.account.name)
   }
   
   async followRequests() {
