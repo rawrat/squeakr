@@ -21,7 +21,7 @@ accept:
 	$(CLEOS) push action $(CONTRACT) accept '["angelosqueak", "alicesqueakr"]' -p angelosqueak
 
 admclear:
-	$(CLEOS) push action $(CONTRACT) admclear '["angelosqueak"]' -p angelosqueak
+	$(CLEOS) push action $(CONTRACT) admclear '["$(CONTRACT)"]' -p $(CONTRACT)
 	
 show:
 	$(CLEOS) get table $(CONTRACT) $(CONTRACT) user
