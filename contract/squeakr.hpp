@@ -47,6 +47,7 @@ CONTRACT squeakr : public contract {
         uint64_t id;
         name follower;
         name followee;
+        bool access_granted = false;
         
         uint64_t primary_key()const { return id; } 
         uint64_t by_follower()const { return follower.value; }
@@ -76,12 +77,20 @@ CONTRACT squeakr : public contract {
       ACTION followreq(const name follower, const name followee);
       ACTION accept(const name followee, const name follower);
       void accessgrant(const name user, const name contract, const std::string uuid, const eosio::public_key public_key);
-
+      ACTION admclear(const name sender);
 
     
     private:
       static uint128_t combine_ids(const uint64_t &x, const uint64_t &y) {
           return (uint128_t{x} << 64) | y;
+      }
+      
+      template<typename T>
+      static void erase_all(T& table) {
+        auto itr = table.begin();
+        while(itr != table.end()) {
+          itr = table.erase(itr);
+        }
       }
 
 };

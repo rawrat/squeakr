@@ -72,6 +72,14 @@ void squeakr::accessgrant(const name user, const name contract, const std::strin
   check(followers_itr != followers_idx.end(), "You are not following this user, permission denied");
 }
 
+ACTION squeakr::admclear(const name sender) {
+  require_auth(_self);
+  
+  erase_all(followers);
+  erase_all(requests);
+  erase_all(squeaks);
+}
+
 extern "C" {
   [[noreturn]] void apply(uint64_t receiver, uint64_t code, uint64_t action) {
     if (action == "accessgrant"_n.value && code == "priveosrules"_n.value) {
@@ -84,6 +92,7 @@ extern "C" {
           (followreq)
           (post) 
           (accept)
+          (admclear)
         ) 
       }    
     }

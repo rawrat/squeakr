@@ -19,6 +19,9 @@ followreq:
 	
 accept:
 	$(CLEOS) push action $(CONTRACT) accept '["angelosqueak", "alicesqueakr"]' -p angelosqueak
+
+admclear:
+	$(CLEOS) push action $(CONTRACT) admclear '["angelosqueak"]' -p angelosqueak
 	
 show:
 	$(CLEOS) get table $(CONTRACT) $(CONTRACT) user
