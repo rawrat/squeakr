@@ -1,3 +1,4 @@
 /frontend/node_modules
 /contract/squeakr.wasm
 /contract/squeakr.abi
+.DS_Store

@@ -225,8 +225,6 @@ class Backend {
   }
   
   async accept(follower) {
-    const {priveos, nonce, key} = await this.getPriveos()
-    
     const actions = [{
       account: contract,
       name: 'accept',
@@ -254,7 +252,7 @@ class Backend {
     return res.rows.filter(x => x.followee == this.account.name)
   }
   
-  async followRequests(user) {
+  async followRequests() {
     const res = await this.eos_api.getTableRows({
       json: true,
       code: contract,
@@ -262,6 +260,7 @@ class Backend {
       table: 'request',
       limit: 100,
     })
+    console.log("inside followRequests: res.rows: ", res.rows)
     return res.rows.filter(x => x.followee == this.account.name)
   }
   
@@ -281,7 +280,28 @@ class Backend {
     const res = await this.eos.transaction({actions})
     console.log(res)
   }
+  
+  async requestAccess(user) {
+    const { priveos } = await this.getPriveos()
+    await priveos.accessgrant(this.account.name, user, "4,EOS")
+    const {key, nonce} = await priveos.read(this.account.name, user)
+    addKey(user, key, nonce)
+  }
 }
 
+/**
+  * In a production application, it would be better to encrypt these.
+  * Either with the user's private key or key derived from a username/password
+  */
+function addKey(user, key, nonce) {
+  let keyStore = JSON.parse(localStorage.getItem('keystore') || '{}')
+  keyStore[user] = {key, nonce}
+  localStorage.setItem('keystore', JSON.stringify(keyStore))  
+}
+
+function getKey(user) {
+  let keyStore = JSON.parse(localStorage.getItem('keystore') || '{}')
+  return keyStore[user]
+}
 
 export default new Backend()

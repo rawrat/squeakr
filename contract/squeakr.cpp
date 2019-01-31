@@ -70,6 +70,10 @@ void squeakr::accessgrant(const name user, const name contract, const std::strin
   const auto followers_idx = followers.template get_index<"combined"_n>();
   const auto followers_itr = followers_idx.find(combine_ids(user.value, giver.value));
   check(followers_itr != followers_idx.end(), "You are not following this user, permission denied");
+  
+  followers.modify(followers.find(followers_itr->id), same_payer, [&](auto& x) {
+    x.access_granted = true;
+  });
 }
 
 ACTION squeakr::admclear(const name sender) {

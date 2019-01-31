@@ -1,25 +1,31 @@
 <template>
 <tr>
-  <td v-if="user.user">{{ user.user }}</td>
-  <td v-else-if="user.follower">{{ user.follower }}</td>
+  <td>{{ user.user }}</td>
   <td>
-      <AcceptButton v-if="is_request" v-bind:user="user" />
-      <FollowButton v-else v-bind:user="user" />
+    <span v-if="isMyself">That's you!</span>
+    <span v-else-if="user.already_follows">Already following</span>
+    <span v-else-if="user.already_requested">Already requested</span>
+    <button v-else @click="follow">Follow</button>
   </td>
 </tr>
 </template>
 
 <script>
 import Backend from '@/Backend'
-import FollowButton from '@/components/FollowButton.vue'
-import AcceptButton from '@/components/AcceptButton.vue'
 
 export default {
   name: 'UserListItem',
-  components: {
-    FollowButton,
-    AcceptButton,
+  props: ['user'],
+  methods: {
+    follow: async function() {
+      await Backend.followRequest(this.user.user)
+      this.$emit('update')
+    }
   },
-  props: ['user', 'is_request'],
+  computed: {
+    isMyself: function() {
+      return Backend.account.name == this.user.user
+    }
+  }
 }
 </script>
