@@ -7,6 +7,7 @@
     "build": "vue-cli-service build"
   },
   "dependencies": {
+    "bluebird": "^3.5.3",
     "eosjs": "16",
     "eosjs-ecc": "^4.0.4",
     "scatterjs-core": "^2.7.7",

@@ -10,6 +10,7 @@ import Priveos from 'priveos'
 import nacl from 'tweetnacl'
 import uuidv4 from 'uuid/v4'
 const _ = require('underscore')
+import Promise from 'bluebird'
 
 ScatterJS.plugins( new ScatterEOS() )
 
@@ -134,10 +135,36 @@ class Backend {
           x.secret = null
         }
       }
+      
+      const followers = await this.following()
+      console.log("I'm following these people: ", followers)
+      for(const { followee } of followers) {
+        console.log("followee: ", followee)
+        const tmp = getKey(followee)
+        console.log("tmp: ", tmp)
+        if(!tmp) {
+          continue
+        }
+        const {key, nonce} = tmp
+        console.log("key: ", key)
+        console.log("nonce: ", typeof nonce)
+        const followee_squeaks = res.rows.filter(x => x.uuid == followee)
+        for(let x of followee_squeaks) {
+          const y = nacl.secretbox.open(Priveos.hex_to_uint8array(x.secret), nonce, key)
+          console.log("y: ", y)
+          if(y) {
+            x.secret = new TextDecoder("utf-8").decode(y)
+          } else {
+            x.secret = null
+          }
+        }
+        console.log(`Squeaks by ${followee}: `, followee_squeaks)
+        squeaks = squeaks.concat(followee_squeaks)
+      }
     }
     
-    const followers = await this.following()
-    console.log("followers: ", followers)
+    
+    
     // show most recent tweet at the top
     const sorted = squeaks.sort((a,b) => b.timestamp - a.timestamp)
     return sorted
@@ -147,15 +174,11 @@ class Backend {
     console.log("ohai getOrCreateKeys")
     if(!localStorage.getItem(this.file_id())) {
       // 1. Generate Ephemeral Keys for secure communication
-      const privateKey = await eosjs_ecc.randomKey()
-      const publicKey = eosjs_ecc.privateToPublic(privateKey)
-      const ephemeralKey = {"private": privateKey, "public": publicKey}
-      console.log("Generate ephemeralKey: ", ephemeralKey)
-      // 2. Generate symmetric key that will be used to encrypt the tweets and register with privEOS
       config.priveos.eos = this.eos
-      config.priveos.ephemeralKeyPrivate = ephemeralKey.private
-      config.priveos.ephemeralKeyPublic = ephemeralKey.public
+      config.priveos.ephemeralKeyPrivate = await eosjs_ecc.randomKey()
+      config.priveos.ephemeralKeyPublic = eosjs_ecc.privateToPublic(config.priveos.ephemeralKeyPrivate)
       
+      // 2. Generate symmetric key that will be used to encrypt the tweets and register with privEOS      
       const priveos = new Priveos(config.priveos)
       let { key, nonce } = priveos.get_encryption_keys()
       
@@ -284,6 +307,7 @@ class Backend {
   async requestAccess(user) {
     const { priveos } = await this.getPriveos()
     await priveos.accessgrant(this.account.name, user, "4,EOS")
+    await Promise.delay(1000)
     const {key, nonce} = await priveos.read(this.account.name, user)
     addKey(user, key, nonce)
   }
@@ -294,6 +318,8 @@ class Backend {
   * Either with the user's private key or key derived from a username/password
   */
 function addKey(user, key, nonce) {
+  key = Priveos.uint8array_to_hex(key)
+  nonce = Priveos.uint8array_to_hex(nonce)
   let keyStore = JSON.parse(localStorage.getItem('keystore') || '{}')
   keyStore[user] = {key, nonce}
   localStorage.setItem('keystore', JSON.stringify(keyStore))  
@@ -301,7 +327,14 @@ function addKey(user, key, nonce) {
 
 function getKey(user) {
   let keyStore = JSON.parse(localStorage.getItem('keystore') || '{}')
-  return keyStore[user]
+  const tmp = keyStore[user]
+  if(!tmp) {
+    return
+  }
+  let {key, nonce} = tmp
+  key = Priveos.hex_to_uint8array(key)
+  nonce = Priveos.hex_to_uint8array(nonce)
+  return {key, nonce}
 }
 
 export default new Backend()
