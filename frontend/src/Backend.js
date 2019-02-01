@@ -121,7 +121,6 @@ class Backend {
     let squeaks = res.rows
     if(this.account) {
       const {
-        _,
         key,
         nonce
       } = await this.getOrCreateKeys()
@@ -174,9 +173,13 @@ class Backend {
     console.log("ohai getOrCreateKeys")
     if(!localStorage.getItem(this.file_id())) {
       // 1. Generate Ephemeral Keys for secure communication
+      const privateKey = await eosjs_ecc.randomKey()
+      const publicKey = eosjs_ecc.privateToPublic(privateKey)
+      const ephemeralKey = {"private": privateKey, "public": publicKey}
+      console.log("getOrCreateKeys ohai THIS WAS NOT HERE BEFORE")
       config.priveos.eos = this.eos
-      config.priveos.ephemeralKeyPrivate = await eosjs_ecc.randomKey()
-      config.priveos.ephemeralKeyPublic = eosjs_ecc.privateToPublic(config.priveos.ephemeralKeyPrivate)
+      config.priveos.ephemeralKeyPrivate = ephemeralKey.private
+      config.priveos.ephemeralKeyPublic = ephemeralKey.public
       
       // 2. Generate symmetric key that will be used to encrypt the tweets and register with privEOS      
       const priveos = new Priveos(config.priveos)
@@ -193,6 +196,7 @@ class Backend {
         ephemeralKey,
         key,
         nonce,
+        priveos,
       }))
     }
     
@@ -211,22 +215,9 @@ class Backend {
     }
   }
   
-  async getPriveos() {
-    const {
-      ephemeralKey,
-      key,
-      nonce
-    } = await this.getOrCreateKeys()
-    
-    config.priveos.eos = this.eos
-    config.priveos.ephemeralKeyPrivate = ephemeralKey.private
-    config.priveos.ephemeralKeyPublic = ephemeralKey.public
-    const priveos = new Priveos(config.priveos)
-    return {priveos, nonce, key}
-  }
   
   async post(text) {
-    const {priveos, nonce, key} = await this.getPriveos()
+    const {priveos, nonce, key} = await this.getOrCreateKeys()
     const secret = nacl.secretbox(Buffer.from(text), nonce, key)
     const file_id = this.account.name
 
