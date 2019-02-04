@@ -122,11 +122,11 @@ class Backend {
     if(this.account) {
       const {
         key,
-        nonce
+        nonce,
       } = await this.getOrCreateKeys()
       squeaks = res.rows.filter(x => x.uuid == this.file_id())
       for(let x of squeaks) {
-        const y = nacl.secretbox.open(Priveos.hex_to_uint8array(x.secret), nonce, key)
+        const y = nacl.secretbox.open(Priveos.hex_to_uint8array(x.secret), Priveos.hex_to_uint8array(x.nonce), key)
         console.log("y: ", y)
         if(y) {
           x.secret = new TextDecoder("utf-8").decode(y)
@@ -149,7 +149,7 @@ class Backend {
         console.log("nonce: ", typeof nonce)
         const followee_squeaks = res.rows.filter(x => x.uuid == followee)
         for(let x of followee_squeaks) {
-          const y = nacl.secretbox.open(Priveos.hex_to_uint8array(x.secret), nonce, key)
+          const y = nacl.secretbox.open(Priveos.hex_to_uint8array(x.secret), Priveos.hex_to_uint8array(x.nonce), key)
           console.log("y: ", y)
           if(y) {
             x.secret = new TextDecoder("utf-8").decode(y)
@@ -171,6 +171,7 @@ class Backend {
   
   async getOrCreateKeys(actions=[]) {
     console.log("ohai getOrCreateKeys")
+    let key, ephemeralKey, nonce
     if(!localStorage.getItem(this.file_id())) {
       // 1. Generate Ephemeral Keys for secure communication
       const privateKey = await eosjs_ecc.randomKey()
@@ -183,7 +184,7 @@ class Backend {
       
       // 2. Generate symmetric key that will be used to encrypt the tweets and register with privEOS      
       const priveos = new Priveos(config.priveos)
-      let { key, nonce } = priveos.get_encryption_keys()
+      ( { key, nonce } = Priveos.gen_key_and_nonce() )
       
       const res = await priveos.store(this.account.name, this.account.name, key, nonce, "4,EOS", actions)
       
@@ -195,17 +196,19 @@ class Backend {
       localStorage.setItem(this.file_id(), JSON.stringify({
         ephemeralKey,
         key,
-        nonce,
-        priveos,
       }))
+    } else {
+      ( { nonce } = Priveos.gen_key_and_nonce() )
+      nonce = Priveos.uint8array_to_hex(nonce)
     }
     
-    let {
-      ephemeralKey,
-      key,
-      nonce
-    } = JSON.parse(localStorage.getItem(this.account.name))
+    ( {
+        ephemeralKey,
+        key,
+      } = JSON.parse(localStorage.getItem(this.account.name)) 
+    )
     console.log("Key: ", key)
+    console.log("Nonce: ", nonce)
     key = Priveos.hex_to_uint8array(key)
     nonce = Priveos.hex_to_uint8array(nonce)
     return {
@@ -231,6 +234,7 @@ class Backend {
       data: {
         user: this.account.name,
         secret: Priveos.uint8array_to_hex(secret),
+        nonce: Priveos.uint8array_to_hex(nonce),
         uuid: file_id,
       }
     }]
