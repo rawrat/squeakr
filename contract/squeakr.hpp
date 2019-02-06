@@ -22,13 +22,6 @@ CONTRACT squeakr : public contract {
         name user;
         uint32_t timestamp;
         std::string secret; // The encrypted and authenticated message text
-        
-        /**
-          * Individual random nonce for each individual tweet (192 bits).
-          * We're using XSalsa20 here, so the nonce is big enough so we
-          * can use random nonces generated on the client side. 
-          */
-        std::string nonce;
         std::string uuid;  // uuid for privEOS
         
         uint64_t primary_key()const { return id; } 
@@ -80,7 +73,7 @@ CONTRACT squeakr : public contract {
       > request_table;
       request_table requests;
       
-      ACTION post(const name user, const std::string secret, const std::string nonce, const std::string uuid);
+      ACTION post(const name user, const std::string secret, const std::string uuid);
       ACTION followreq(const name follower, const name followee);
       ACTION accept(const name followee, const name follower);
       void accessgrant(const name user, const name contract, const std::string uuid, const eosio::public_key public_key);

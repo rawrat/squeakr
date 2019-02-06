@@ -1,14 +1,13 @@
 #include "squeakr.hpp"
 
 
-ACTION squeakr::post(const name user, const std::string secret, const std::string nonce, const std::string uuid) {
+ACTION squeakr::post(const name user, const std::string secret, const std::string uuid) {
   require_auth(user);
   
   squeaks.emplace(user, [&](auto& x) {
     x.id = squeaks.available_primary_key();
     x.user = user;
     x.secret = secret;
-    x.nonce = nonce;
     x.uuid = uuid;
     x.timestamp = now();
   });

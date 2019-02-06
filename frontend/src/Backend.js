@@ -7,7 +7,6 @@ const contract = 'squeakrdappx'
 import ScatterJS from 'scatterjs-core'
 import ScatterEOS from 'scatterjs-plugin-eosjs'
 import Priveos from 'priveos'
-import nacl from 'tweetnacl'
 import uuidv4 from 'uuid/v4'
 const _ = require('underscore')
 import Promise from 'bluebird'
@@ -126,13 +125,7 @@ class Backend {
       } = await this.getOrCreateKeys()
       squeaks = res.rows.filter(x => x.uuid == this.file_id())
       for(let x of squeaks) {
-        const y = nacl.secretbox.open(Priveos.hex_to_uint8array(x.secret), Priveos.hex_to_uint8array(x.nonce), key)
-        console.log("y: ", y)
-        if(y) {
-          x.secret = new TextDecoder("utf-8").decode(y)
-        } else {
-          x.secret = null
-        }
+        x.secret = Priveos.encryption.decrypt(x.secret, key)
       }
       
       const followers = await this.following()
@@ -149,13 +142,7 @@ class Backend {
         console.log("nonce: ", typeof nonce)
         const followee_squeaks = res.rows.filter(x => x.uuid == followee)
         for(let x of followee_squeaks) {
-          const y = nacl.secretbox.open(Priveos.hex_to_uint8array(x.secret), Priveos.hex_to_uint8array(x.nonce), key)
-          console.log("y: ", y)
-          if(y) {
-            x.secret = new TextDecoder("utf-8").decode(y)
-          } else {
-            x.secret = null
-          }
+          x.secret = Priveos.encryption.decrypt(x.secret, key)
         }
         console.log(`Squeaks by ${followee}: `, followee_squeaks)
         squeaks = squeaks.concat(followee_squeaks)
@@ -171,7 +158,6 @@ class Backend {
   
   async getOrCreateKeys(actions=[]) {
     console.log("ohai getOrCreateKeys")
-    let key, ephemeralKey, nonce
     if(!localStorage.getItem(this.file_id())) {
       // 1. Generate Ephemeral Keys for secure communication
       const privateKey = await eosjs_ecc.randomKey()
@@ -184,44 +170,23 @@ class Backend {
       
       // 2. Generate symmetric key that will be used to encrypt the tweets and register with privEOS      
       const priveos = new Priveos(config.priveos)
-      ( { key, nonce } = Priveos.gen_key_and_nonce() )
+      const key = Priveos.encryption.generateKey()
       
-      const res = await priveos.store(this.account.name, this.account.name, key, nonce, "4,EOS", actions)
+      const res = await priveos.store(this.account.name, this.account.name, key, {actions})
       
-      key = Priveos.uint8array_to_hex(key)
-      nonce = Priveos.uint8array_to_hex(nonce)
-      console.log("setting key to: ", key)
-      console.log("setting nonce to: ", nonce)
-      console.log("localStorage.setItem this.file_id(): ", this.file_id())
       localStorage.setItem(this.file_id(), JSON.stringify({
         ephemeralKey,
         key,
       }))
-    } else {
-      ( { nonce } = Priveos.gen_key_and_nonce() )
-      nonce = Priveos.uint8array_to_hex(nonce)
     }
     
-    ( {
-        ephemeralKey,
-        key,
-      } = JSON.parse(localStorage.getItem(this.account.name)) 
-    )
-    console.log("Key: ", key)
-    console.log("Nonce: ", nonce)
-    key = Priveos.hex_to_uint8array(key)
-    nonce = Priveos.hex_to_uint8array(nonce)
-    return {
-      ephemeralKey,
-      key,
-      nonce
-    }
+    return JSON.parse(localStorage.getItem(this.account.name)) 
   }
   
   
   async post(text) {
-    const {priveos, nonce, key} = await this.getOrCreateKeys()
-    const secret = nacl.secretbox(Buffer.from(text), nonce, key)
+    const {priveos, key} = await this.getOrCreateKeys()
+    const secret = Priveos.encryption.encrypt(text, key)
     const file_id = this.account.name
 
     const actions = [{
@@ -233,8 +198,7 @@ class Backend {
       }],
       data: {
         user: this.account.name,
-        secret: Priveos.uint8array_to_hex(secret),
-        nonce: Priveos.uint8array_to_hex(nonce),
+        secret: secret,
         uuid: file_id,
       }
     }]
@@ -303,8 +267,8 @@ class Backend {
     const { priveos } = await this.getPriveos()
     await priveos.accessgrant(this.account.name, user, "4,EOS")
     await Promise.delay(1000)
-    const {key, nonce} = await priveos.read(this.account.name, user)
-    addKey(user, key, nonce)
+    const key = await priveos.read(this.account.name, user)
+    addKey(user, key)
   }
 }
 
@@ -312,24 +276,15 @@ class Backend {
   * In a production application, it would be better to encrypt these.
   * Either with the user's private key or key derived from a username/password
   */
-function addKey(user, key, nonce) {
-  key = Priveos.uint8array_to_hex(key)
-  nonce = Priveos.uint8array_to_hex(nonce)
+function addKey(user, key) {
   let keyStore = JSON.parse(localStorage.getItem('keystore') || '{}')
-  keyStore[user] = {key, nonce}
+  keyStore[user] = key
   localStorage.setItem('keystore', JSON.stringify(keyStore))  
 }
 
 function getKey(user) {
   let keyStore = JSON.parse(localStorage.getItem('keystore') || '{}')
-  const tmp = keyStore[user]
-  if(!tmp) {
-    return
-  }
-  let {key, nonce} = tmp
-  key = Priveos.hex_to_uint8array(key)
-  nonce = Priveos.hex_to_uint8array(nonce)
-  return {key, nonce}
+  return keyStore[user]
 }
 
 export default new Backend()
