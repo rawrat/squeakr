@@ -133,6 +133,9 @@ class Backend {
       for(const { followee } of followers) {
         console.log("followee: ", followee)
         const key = getKey(followee)
+        if(!key) {
+          continue
+        }
         console.log("key: ", key)
         const followee_squeaks = res.rows.filter(x => x.uuid == followee)
         for(let x of followee_squeaks) {
