@@ -132,14 +132,8 @@ class Backend {
       console.log("I'm following these people: ", followers)
       for(const { followee } of followers) {
         console.log("followee: ", followee)
-        const tmp = getKey(followee)
-        console.log("tmp: ", tmp)
-        if(!tmp) {
-          continue
-        }
-        const {key, nonce} = tmp
+        const key = getKey(followee)
         console.log("key: ", key)
-        console.log("nonce: ", typeof nonce)
         const followee_squeaks = res.rows.filter(x => x.uuid == followee)
         for(let x of followee_squeaks) {
           x.secret = Priveos.encryption.decrypt(x.secret, key)
@@ -156,6 +150,13 @@ class Backend {
     return sorted
   }
   
+  getPriveos(ephemeralKey) {
+    config.priveos.eos = this.eos
+    config.priveos.ephemeralKeyPrivate = ephemeralKey.private
+    config.priveos.ephemeralKeyPublic = ephemeralKey.public
+    return new Priveos(config.priveos)
+  }
+  
   async getOrCreateKeys(actions=[]) {
     console.log("ohai getOrCreateKeys")
     if(!localStorage.getItem(this.file_id())) {
@@ -164,12 +165,9 @@ class Backend {
       const publicKey = eosjs_ecc.privateToPublic(privateKey)
       const ephemeralKey = {"private": privateKey, "public": publicKey}
       console.log("getOrCreateKeys ohai THIS WAS NOT HERE BEFORE")
-      config.priveos.eos = this.eos
-      config.priveos.ephemeralKeyPrivate = ephemeralKey.private
-      config.priveos.ephemeralKeyPublic = ephemeralKey.public
+      const priveos = this.getPriveos(ephemeralKey)
       
       // 2. Generate symmetric key that will be used to encrypt the tweets and register with privEOS      
-      const priveos = new Priveos(config.priveos)
       const key = Priveos.encryption.generateKey()
       
       const res = await priveos.store(this.account.name, this.account.name, key, {actions})
@@ -180,7 +178,9 @@ class Backend {
       }))
     }
     
-    return JSON.parse(localStorage.getItem(this.account.name)) 
+    let data = JSON.parse(localStorage.getItem(this.account.name)) 
+    data.priveos = this.getPriveos(data.ephemeralKey)
+    return data
   }
   
   
@@ -264,7 +264,7 @@ class Backend {
   }
   
   async requestAccess(user) {
-    const { priveos } = await this.getPriveos()
+    const { priveos } = await this.getOrCreateKeys()
     await priveos.accessgrant(this.account.name, user, "4,EOS")
     await Promise.delay(1000)
     const key = await priveos.read(this.account.name, user)
