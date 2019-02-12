@@ -29,6 +29,10 @@ show:
 	$(CLEOS) get table $(CONTRACT) $(CONTRACT) request
 	$(CLEOS) get table $(CONTRACT) $(CONTRACT) follower
 
+fundpriveos:
+	$(CLEOS) push action priveosrules prepare '["$(CONTRACT)", "4,EOS"]' -p $(CONTRACT)
+	$(CLEOS) transfer $(CONTRACT) priveosrules "0.0500 EOS"
+	
 setup:
 	$(CLEOS) system newaccount --stake-net "1.0000 EOS" --stake-cpu "1.0000 EOS" --buy-ram-kbytes 8000 eosio alicesqueakr $(PUBLIC_KEY) $(PUBLIC_KEY)
 
