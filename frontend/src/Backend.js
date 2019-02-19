@@ -10,6 +10,12 @@ import Priveos from 'priveos'
 import uuidv4 from 'uuid/v4'
 const _ = require('underscore')
 import Promise from 'bluebird'
+import {
+  decodeUTF8,
+  encodeUTF8,
+  decodeBase64,
+  encodeBase64,
+} from "tweetnacl-util"
 
 ScatterJS.plugins( new ScatterEOS() )
 
@@ -125,7 +131,8 @@ class Backend {
       } = await this.getOrCreateKeys()
       squeaks = res.rows.filter(x => x.uuid == this.file_id())
       for(let x of squeaks) {
-        x.secret = Priveos.encryption.decrypt(x.secret, key)
+        console.log("key: ", key)
+        x.secret = encodeUTF8(Priveos.encryption.decrypt(decodeBase64(x.secret), key))
       }
       
       const followers = await this.following()
@@ -171,25 +178,32 @@ class Backend {
       const priveos = this.getPriveos(ephemeralKey)
       
       // 2. Generate symmetric key that will be used to encrypt the tweets and register with privEOS      
-      const key = Priveos.encryption.generateKey()
+      const key = Priveos.uint8array_to_hex(Priveos.encryption.generateKey())
       
-      const res = await priveos.store(this.account.name, this.account.name, key, {actions})
+      const txid = await priveos.store(this.account.name, this.account.name, key, {actions})
       
       localStorage.setItem(this.file_id(), JSON.stringify({
         ephemeralKey,
         key,
+        txid,
       }))
     }
     
     let data = JSON.parse(localStorage.getItem(this.account.name)) 
+    console.log("data from localStorage: ", JSON.stringify(data, null, 2))
+
     data.priveos = this.getPriveos(data.ephemeralKey)
+    data.key = Priveos.hex_to_uint8array(data.key)
     return data
   }
   
   
   async post(text) {
     const {priveos, key} = await this.getOrCreateKeys()
-    const secret = Priveos.encryption.encrypt(text, key)
+    console.log("key: ", key)
+    const bytes = decodeUTF8(text)
+    const secret_bytes = Priveos.encryption.encrypt(bytes, key)
+    const secret = encodeBase64(secret_bytes)
     const file_id = this.account.name
 
     const actions = [{
@@ -267,10 +281,10 @@ class Backend {
   }
   
   async requestAccess(user) {
-    const { priveos } = await this.getOrCreateKeys()
-    await priveos.accessgrant(this.account.name, user, "4,EOS")
+    const { priveos, txid } = await this.getOrCreateKeys()
+    const accessgrant_txid = await priveos.accessgrant(this.account.name, user, txid)
     await Promise.delay(1000)
-    const key = await priveos.read(this.account.name, user)
+    const key = await priveos.read(this.account.name, user, accessgrant_txid)
     addKey(user, key)
   }
 }
