@@ -6,7 +6,7 @@
         <router-link to="/">Home</router-link> | 
         <router-link to="/users">Users</router-link>
       </div>
-      <button v-on:click="logout()">Logout</button>
+      <LoginButton />
     </div>
     <router-view/>
   </div>
@@ -14,8 +14,12 @@
 
 <script>
 import Backend from '@/Backend'
+import LoginButton from '@/components/LoginButton.vue'
 
 export default {
+  components: {
+    LoginButton,
+  },
   methods: {
     logout: async function() {
       await Backend.logout()

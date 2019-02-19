@@ -28,7 +28,8 @@ import FollowRequestListItem from '@/components/FollowRequestListItem.vue'
 import FollowingListItem from '@/components/FollowingListItem.vue'
 
 async function reload(x) {
-  await Backend.scatterConnect()
+  if(!Backend.account) return
+  
   x.users = await Backend.users()
   x.following = await Backend.following()
   x.followRequests = await Backend.followRequests()

@@ -26,6 +26,7 @@ class Backend {
       httpEndpoint: config.httpEndpoint,
       chainId: config.chainId,
     })
+    this.account = null
   }
   async scatterConnect() {
     console.log("Ohai scatterConnect")

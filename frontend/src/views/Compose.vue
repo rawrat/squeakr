@@ -24,9 +24,6 @@ export default {
       this.$router.push('/')
     }
   },
-  async mounted() {
-    Backend.scatterConnect()
-  }
 }
 </script>
 
