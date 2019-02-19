@@ -146,7 +146,8 @@ class Backend {
         console.log("key: ", key)
         const followee_squeaks = res.rows.filter(x => x.uuid == followee)
         for(let x of followee_squeaks) {
-          x.secret = Priveos.encryption.decrypt(x.secret, key)
+          console.log("x.secret: ", x.secret)
+          x.secret = encodeUTF8(Priveos.encryption.decrypt(decodeBase64(x.secret), key))
         }
         console.log(`Squeaks by ${followee}: `, followee_squeaks)
         squeaks = squeaks.concat(followee_squeaks)
@@ -180,12 +181,11 @@ class Backend {
       // 2. Generate symmetric key that will be used to encrypt the tweets and register with privEOS      
       const key = Priveos.uint8array_to_hex(Priveos.encryption.generateKey())
       
-      const txid = await priveos.store(this.account.name, this.account.name, key, {actions})
+      await priveos.store(this.account.name, this.account.name, key, {actions})
       
       localStorage.setItem(this.file_id(), JSON.stringify({
         ephemeralKey,
         key,
-        txid,
       }))
     }
     
@@ -281,9 +281,8 @@ class Backend {
   }
   
   async requestAccess(user) {
-    const { priveos, txid } = await this.getOrCreateKeys()
-    const accessgrant_txid = await priveos.accessgrant(this.account.name, user, txid)
-    await Promise.delay(1000)
+    const { priveos } = await this.getOrCreateKeys()
+    const accessgrant_txid = await priveos.accessgrant(this.account.name, user)
     const key = await priveos.read(this.account.name, user, accessgrant_txid)
     addKey(user, key)
   }
@@ -294,6 +293,7 @@ class Backend {
   * Either with the user's private key or key derived from a username/password
   */
 function addKey(user, key) {
+  key = encodeBase64(key)
   let keyStore = JSON.parse(localStorage.getItem('keystore') || '{}')
   keyStore[user] = key
   localStorage.setItem('keystore', JSON.stringify(keyStore))  
@@ -301,7 +301,10 @@ function addKey(user, key) {
 
 function getKey(user) {
   let keyStore = JSON.parse(localStorage.getItem('keystore') || '{}')
-  return keyStore[user]
+  const key = keyStore[user]
+  if(key) {
+    return decodeBase64(key)
+  }
 }
 
 export default new Backend()
