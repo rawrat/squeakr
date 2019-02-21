@@ -35,10 +35,13 @@ export default {
   },
   computed: {
     caption: function() {
-      return this.loggedIn? 'Logout': 'Login'
+      return this.loggedIn? `Logout ${this.username}`: 'Login'
     },
     loggedIn: function() {
       return !!this.backend.account
+    },
+    username: function() {
+      return this.backend.account.name
     }
   }
 }
