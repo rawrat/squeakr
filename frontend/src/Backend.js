@@ -180,13 +180,13 @@ class Backend {
       const priveos = this.getPriveos(ephemeralKey)
       
       // 2. Generate symmetric key that will be used to encrypt the tweets and register with privEOS      
-      const key = Priveos.uint8array_to_hex(Priveos.encryption.generateKey())
+      const key = Priveos.encryption.generateKey()
       
       await priveos.store(this.account.name, this.account.name, key, {actions})
       
       localStorage.setItem(this.file_id(), JSON.stringify({
         ephemeralKey,
-        key,
+        key: Priveos.uint8array_to_hex(key),
       }))
     }
     
