@@ -2,7 +2,7 @@
   <div class="home">
     <button v-on:click="squeakButton()">Squeak</button>
     <table>
-      <TimelineItem v-for="squeak in squeaks" :squeak="squeak" />
+      <TimelineItem v-for="squeak in squeaks" :squeak="squeak" :key="squeak.id" />
     </table>
   </div>
 </template>

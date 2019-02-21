@@ -12,16 +12,13 @@ make deploy
 make fundpriveos
 ```
 
-### Install the privEOS Library
+### Install dependencies
 ```
-git checkout https://github.com/rawrat/priveos-client
-cd priveos-client
-npm link
+cd frontend
+npm install
 ```
 ### Run the app
 ```
 cd frontend
-npm install
-npm link priveos
 npm run serve
 ```
