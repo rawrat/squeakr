@@ -17,6 +17,10 @@ make fundpriveos
 cd frontend
 npm install
 ```
+### Change Configuration
+
+You will have to update the environment in the config file which is located here: `frontend/src/config.js`.
+
 ### Run the app
 ```
 cd frontend
