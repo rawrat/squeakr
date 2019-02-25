@@ -24,7 +24,7 @@ export default {
     },
     login: async function() {
       console.log("Login!!!")
-      await Backend.scatterConnect()
+      // await Backend.scatterConnect()
       console.log("scatterConnect is finished")
       console.log("this.loggedIn: ", this.loggedIn)
     },

@@ -60,6 +60,24 @@ ACTION squeakr::accept(const name followee, const name follower) {
   requests.erase(requests.find(itr->id));
 }
 
+ACTION squeakr::userreg(const std::string username, const public_key pubkey) {
+  require_auth(_self);
+  
+  auto idx = users.template get_index<"byusername"_n>();
+  auto itr = idx.find(sha256(username.data(), username.size()));
+  if(itr == idx.end()) {
+    users.emplace(_self, [&](auto& x) {
+      x.id = users.available_primary_key();
+      x.username = username;
+      x.public_key = pubkey;
+    });
+  } else {
+    idx.modify(itr, _self, [&](auto& x) {
+      x.public_key = pubkey;
+    });
+  }
+}
+
 void squeakr::accessgrant(const name user, const name contract, const std::string uuid, const eosio::public_key public_key) {
   // no require_auth, anybody may call this
   
@@ -82,6 +100,7 @@ ACTION squeakr::admclear(const name sender) {
   erase_all(followers);
   erase_all(requests);
   erase_all(squeaks);
+  erase_all(users);
 }
 
 extern "C" {
@@ -97,6 +116,7 @@ extern "C" {
           (post) 
           (accept)
           (admclear)
+          (userreg)
         ) 
       }    
     }

@@ -16,6 +16,8 @@ import {
   decodeBase64,
   encodeBase64,
 } from "tweetnacl-util"
+import scrypt from 'scrypt-async'
+import Client from '@/Client'
 
 ScatterJS.plugins( new ScatterEOS() )
 
@@ -28,6 +30,32 @@ class Backend {
     })
     this.account = null
   }
+  
+  deriveKey(password, salt=null) {
+    return new Promise(resolve => {
+      if(salt == null) {
+        salt = Buffer.from(Priveos.encryption.generateKey()).toString('hex')
+      }
+      scrypt(password, salt, {
+        N: Math.pow(2, 16),
+        r: 8,
+        p: 1,
+        dkLen: 32,
+        encoding: 'binary'
+      }, function(derivedKey) {
+        const buffer = Buffer.from(derivedKey)
+        const private_key = eosjs_ecc.PrivateKey.fromBuffer(buffer)
+        resolve({private_key, salt})
+      })
+    })
+  }
+  
+  async register(username, password) {
+    const {private_key, salt} = await this.deriveKey(password)
+    const public_key = private_key.toPublic().toString()
+    Client.userreg(username, public_key)
+  }
+  
   async scatterConnect() {
     console.log("Ohai scatterConnect")
     if(this.scatter && this.eos) {

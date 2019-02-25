@@ -23,7 +23,6 @@ export default {
     }
   },
   async mounted () {
-    await Backend.scatterConnect()
     this.squeaks = await Backend.squeaks()
   },
   methods: {

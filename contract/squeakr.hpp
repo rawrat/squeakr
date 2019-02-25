@@ -1,4 +1,5 @@
 #include <eosiolib/eosio.hpp>
+#include <eosiolib/crypto.hpp>
 using namespace eosio;
 
 
@@ -20,24 +21,38 @@ CONTRACT squeakr : public contract {
       TABLE squeak {
         uint64_t id;
         name user;
+        std::string username;
+        
         uint32_t timestamp;
         std::string secret; // The encrypted and authenticated message text
         std::string uuid;  // uuid for privEOS
         
         uint64_t primary_key()const { return id; } 
         uint64_t by_user()const { return user.value; }
+        checksum256 by_username()const { return sha256(username.data(), username.length()); }
       };
       typedef multi_index<"squeak"_n, squeak,
-        indexed_by< "byuser"_n, const_mem_fun<squeak, uint64_t,  &squeak::by_user> >
+        indexed_by< "byuser"_n, const_mem_fun<squeak, uint64_t, &squeak::by_user> >,
+        indexed_by< "byusername"_n, const_mem_fun<squeak, checksum256, &squeak::by_username> >
       > squeak_table;
       squeak_table squeaks;
       
       TABLE user {
+        uint64_t id;
+        
+        // if user has a real EOS account
         name user;
         
+        // username + public_key if user has a light account
+        std::string username;
+        public_key public_key;
+        
         uint64_t primary_key()const { return user.value; } 
+        checksum256 by_username()const { return sha256(username.data(), username.length()); }
       };
-      typedef multi_index<"user"_n, user> user_table;
+      typedef multi_index<"user"_n, user,
+        indexed_by<"byusername"_n, const_mem_fun<user, checksum256, &user::by_username> >
+      > user_table;
       user_table users;
       
       /**
@@ -78,6 +93,8 @@ CONTRACT squeakr : public contract {
       ACTION accept(const name followee, const name follower);
       void accessgrant(const name user, const name contract, const std::string uuid, const eosio::public_key public_key);
       ACTION admclear(const name sender);
+      
+      ACTION userreg(const std::string username, const public_key pubkey);
 
     
     private:
