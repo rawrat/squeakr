@@ -10,7 +10,7 @@
     "bluebird": "^3.5.3",
     "eosjs": "16",
     "eosjs-ecc": "^4.0.4",
-    "priveos": "^0.1.5",
+    "priveos": "^0.1.9",
     "scatterjs-core": "^2.7.7",
     "scatterjs-plugin-eosjs": "^1.5.0",
     "scrypt-async": "^2.0.1",

@@ -7,7 +7,7 @@
     "axios": "^0.18.0",
     "eosjs": "16",
     "eosjs-ecc": "^4.0.4",
-    "priveos": "^0.1.7",
+    "priveos": "^0.1.9",
     "restify": "^8.0.0",
     "restify-cors-middleware": "^1.1.1"
   }
